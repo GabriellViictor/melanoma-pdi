@@ -1,0 +1,28 @@
+# Build e Compilação
+build/
+cmake-build-*/
+out/
+bin/
+*.exe
+*.o
+*.obj
+*.dll
+*.so
+*.dylib
+
+# IDEs e Editores
+.idea/
+.vscode/
+*.sln
+*.vcxproj*
+.vs/
+*.user
+
+# Sistema Operacional
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs e Temporários
+*.log
+*.tmp
