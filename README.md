@@ -14,9 +14,17 @@
 
 ## Problema Investigado
 
+O problema investigado consiste no isolamento e na caracterização quantitativa de lesões cutâneas a partir de imagens dermatoscópicas digitais, buscando mitigar a subjetividade da inspeção visual humana na triagem do melanoma.
+O desafio central sob a ótica de Processamento Digital de Imagens (PDI) reside em tratar matrizes de pixels brutas, frequentemente degradadas por ruídos como pelos sobrepostos, variações de iluminação e transições difusas com a pele sadia, para segmentar com precisão os contornos da lesão e extrair descritores matemáticos morfológicos e cromáticos (como assimetria, compacidade de bordas e dispersão de cores) capazes de diferenciar computacionalmente lesões benignas de lesões malignas.
+
 ---
 
 ## Contexto de Aplicação
+O melanoma é a forma mais letal de câncer de pele, cuja taxa de cura está diretamente associada à precocidade do diagnóstico. O conjunto de dados adotado compreende **13.900 imagens dermatoscópicas** padronizadas na resolução de $224 \times 224$ pixels, rotuladas entre lesões **benignas** e **malignas (melanoma)**.
+
+A triagem clínica visual tradicional enfrenta desafios críticos:
+* **Alta variabilidade inter-examinador:** Lesões em estágios iniciais compartilham características visuais sutis com nevos benignos (pintas comuns);
+* **Heterogeneidade morfológica:** Melanomas manifestam polimorfismo acentuado, apresentando crescimento assimétrico, bordas recortadas e multiplicidade de padrões cromáticos.
 
 ---
 
