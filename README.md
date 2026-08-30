@@ -29,11 +29,15 @@ A triagem clínica visual tradicional enfrenta desafios críticos:
 ---
 
 ## Objetivo Geral
+Desenvolver um pipeline de Processamento Digital de Imagens (PDI) utilizando a linguagem C++ e a biblioteca OpenCV para isolar e analisar lesões cutâneas em imagens dermatoscópicas. O sistema visa extrair métricas quantitativas e descritores morfológicos e cromáticos (como assimetria e compacidade de bordas) das regiões segmentadas, mitigando a subjetividade da análise visual humana e fornecendo suporte computacional para a diferenciação entre lesões benignas e melanomas.
 
 ---
 
 ## Visão Resumida da Solução Proposta
-
+A solução computacional será dividida em três fases principais de PDI:
+- Pré-processamento: Conversão para diferentes espaços de cores (como HSV ou LAB), realce de contraste e atenuação de ruídos. Inclui a remoção computacional de pelos sobrepostos utilizando operações morfológicas e algoritmos de preenchimento.  
+- Segmentação: Aplicação de técnicas de limiarização e métodos baseados em contornos ou regiões para separar com precisão a área da lesão (frente) da pele sadia (fundo).  
+- Extração de Características: Cálculo matemático dos atributos da lesão segmentada, focando em descritores de forma (assimetria, perímetro, área, compacidade) e de cor (dispersão dos canais cromáticos), que servirão como base para a classificação da lesão.  
 
 ---
 
@@ -46,7 +50,7 @@ A triagem clínica visual tradicional enfrenta desafios críticos:
 ---
 
 ##  Estágio Atual do Projeto (M1)
-
+Definidos os integrantes do grupo de trabalho, [proposta detalhada em markdown](./docs/PROPOSTA.md) bem como o contexto geral, objetivo, entrada e saída esperada. Estabelecido o conjunto de dados inicial, arquitetura, esteira e organização preliminar inicial bem como o estudo de viabilidade, as referências utilizadas, video e o histórico de desenvolvimento.
 
 ---
 
@@ -75,6 +79,24 @@ melanoma-pdi/
 ---
 
 ## Instruções de Compilação e Execução
+Quando houver software, utilizaremos os comandos abaixo para compilar:
+```bash
+cmake -S . -B build/unix-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug
+cmake --build build/unix-debug
+```
+
+Pretendemos que o software seja executado para treinamento com:
+```bash
+./pdi_lab_train \
+  --benign-input <diretorio de treino benigno>
+  --malign-input <diretorio de treino maligno>
+```
+
+e para validação
+```bash
+./pdi_lab \
+  --input <imagem de validacap>
+```
 
 ---
 
@@ -84,4 +106,4 @@ melanoma-pdi/
 ---
 
 ## Documentação Adicional
-
+- [PROPOSTA.md](./docs/PROPOSTA.md)
