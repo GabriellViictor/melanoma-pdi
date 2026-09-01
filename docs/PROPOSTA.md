@@ -212,8 +212,8 @@ Até o presente momento não foi realizado nenhum desenvolvimento de código nem
 ## Referências
 
 
-  - KIM, Chan-Il et al. **Computer-Aided Diagnosis Algorithm for Classification of Malignant Melanoma Using Deep Neural Networks**. Sensors, v. 21, n. 16, p. 5551, 2021. DOI: https://doi.org/10.3390/s21165551. Acesso em: 30 ago. 2026.
-  - LEE, Tim et al. **DullRazor: A software approach to hair removal from images**. Computers in Biology and Medicine, v. 27, n. 6, p. 533-543, 1997. DOI: https://doi.org/10.1016/s0010-4825(97)00020-6. Acesso em: 30 ago. 2026.
-  - MITTAL, Bhavesh. **Melanoma Cancer Dataset**. Kaggle, 2023. Disponível em: https://www.kaggle.com/datasets/bhaveshmittal/melanoma-cancer-dataset/data. Acesso em: 30 ago. 2026.
-  - NACHBAR, Franz et al. **The ABCD rule of dermatoscopy: High prospective value in the diagnosis of doubtful melanocytic skin lesions**. Journal of the American Academy of Dermatology, v. 30, n. 4, p. 551-559, 1994. DOI: https://doi.org/10.1016/s0190-9622(94)70061-3. Acesso em: 30 ago. 2026.
-  - OPENCV DEVELOPER TEAM. **OpenCV Documentation (4.x)**. OpenCV, 2024. Disponível em: https://docs.opencv.org/. Acesso em: 30 ago. 2026.
+- KIM, Chan-Il et al. **Computer-Aided Diagnosis Algorithm for Classification of Malignant Melanoma Using Deep Neural Networks**. Sensors, v. 21, n. 16, p. 5551, 2021. DOI: https://doi.org/10.3390/s21165551. Acesso em: 30 ago. 2026.
+- LEE, Tim et al. **DullRazor: A software approach to hair removal from images**. Computers in Biology and Medicine, v. 27, n. 6, p. 533-543, 1997. DOI: https://doi.org/10.1016/s0010-4825(97)00020-6. Acesso em: 30 ago. 2026.
+- MITTAL, Bhavesh. **Melanoma Cancer Dataset**. Kaggle, 2023. Disponível em: https://www.kaggle.com/datasets/bhaveshmittal/melanoma-cancer-dataset/data. Acesso em: 30 ago. 2026.
+- NACHBAR, Franz et al. **The ABCD rule of dermatoscopy: High prospective value in the diagnosis of doubtful melanocytic skin lesions**. Journal of the American Academy of Dermatology, v. 30, n. 4, p. 551-559, 1994. DOI: https://doi.org/10.1016/s0190-9622(94)70061-3. Acesso em: 30 ago. 2026.
+- OPENCV DEVELOPER TEAM. **OpenCV Documentation (4.x)**. OpenCV, 2024. Disponível em: https://docs.opencv.org/. Acesso em: 30 ago. 2026.
