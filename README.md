@@ -101,7 +101,7 @@ e para validação
 ---
 
 ## Vídeo de Apresentação da Etapa M1
-* **Link do Vídeo
+* https://youtu.be/oI2tWe0_nkA
 
 ---
 
