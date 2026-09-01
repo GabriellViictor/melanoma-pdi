@@ -107,3 +107,11 @@ e para validação
 
 ## Documentação Adicional
 - [PROPOSTA.md](./docs/PROPOSTA.md)
+
+---
+
+## Uso de IA
+- Gemini;
+- Ferramenta de produtividade, pesquisa eficiente e sugestões;
+- Os slides utilizados no vídeo foram produzidos por IA, revisados e modificados;
+- Respostas verificadas através das referências na [proposta](./docs/PROPOSTA.md)
