@@ -56,14 +56,20 @@ add_executable(melanoma_tests
 
 target_link_libraries(melanoma_tests PRIVATE melanoma_core)
 
+add_test(NAME core_pipeline_test COMMAND melanoma_tests --test-pipeline)
 add_test(NAME dataset_integrity COMMAND melanoma_tests --test-dataset)
 add_test(NAME pipeline_smoke_test COMMAND melanoma_tests --test-processing)
 
-# No Windows, copia as DLLs do OpenCV para a pasta do executavel apos a compilacao
+# No Windows, copia as DLLs do OpenCV para a pasta dos executaveis apos a compilacao
 if(WIN32 AND EXISTS "${OpenCV_DIR}/x64/mingw/bin")
     add_custom_command(TARGET melanoma_pdi POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_directory
             "${OpenCV_DIR}/x64/mingw/bin"
             "$<TARGET_FILE_DIR:melanoma_pdi>"
+    )
+    add_custom_command(TARGET melanoma_tests POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${OpenCV_DIR}/x64/mingw/bin"
+            "$<TARGET_FILE_DIR:melanoma_tests>"
     )
 endif()
