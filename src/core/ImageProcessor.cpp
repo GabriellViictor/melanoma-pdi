@@ -130,10 +130,6 @@ cv::Mat ImageProcessor::detectHairs(const cv::Mat& bgrImage, const HairRemovalOp
     // Estágio 2 — Realce de colinearidade direcional (8 orientações, comprimento 9 px):
     //   Para cada orientação theta, compara a continuidade do vale na direção paralela (theta)
     //   com a direção ortogonal (theta + 90 graus).
-    //   - Em fios de cabelo: `thinValleys` é contínuo ao longo de theta (fechamento paralelo alto)
-    //     e estreito na direção ortogonal (erosão ortogonal zero).
-    //   - Nas bordas ou espículas curtas da lesão: a resposta ortogonal também é significativa,
-    //     suprimindo falsos positivos ao redor do núcleo pigmentado.
     const auto lineKernels = createDirectionalHairKernels(9);
     cv::Mat fiberResponse = cv::Mat::zeros(gray.size(), CV_8UC1);
 
@@ -151,7 +147,6 @@ cv::Mat ImageProcessor::detectHairs(const cv::Mat& bgrImage, const HairRemovalOp
     }
 
     // Limita `fiberResponse` aos pixels que realmente eram vales no Black-Hat original
-    // (impede que o fechamento linear crie pontes falsas através do interior da lesão)
     cv::min(fiberResponse, thinValleys, fiberResponse);
 
     // Proteção explícita de núcleo sólido de lesão: uma mancha muito escura e compacta que sobrevive
@@ -766,6 +761,37 @@ ColorFeatures ImageProcessor::extractColorFeatures(const cv::Mat& bgrImage, cons
     }
 
     return cf;
+}
+
+SegmentationComparisonMetrics ImageProcessor::compareMasks(const cv::Mat& predictedMask, const cv::Mat& referenceMask) {
+    SegmentationComparisonMetrics metrics;
+    if (predictedMask.empty() || referenceMask.empty() || predictedMask.size() != referenceMask.size()) {
+        return metrics;
+    }
+
+    cv::Mat predBin, refBin;
+    cv::threshold(predictedMask, predBin, 127, 255, cv::THRESH_BINARY);
+    cv::threshold(referenceMask, refBin, 127, 255, cv::THRESH_BINARY);
+
+    cv::Mat interMat, unionMat;
+    cv::bitwise_and(predBin, refBin, interMat);
+    cv::bitwise_or(predBin, refBin, unionMat);
+
+    const int interCount = cv::countNonZero(interMat);
+    const int unionCount = cv::countNonZero(unionMat);
+    const int predCount = cv::countNonZero(predBin);
+    const int refCount = cv::countNonZero(refBin);
+
+    metrics.intersectionPixels = interCount;
+    metrics.unionPixels = unionCount;
+    metrics.iou = (unionCount > 0) ? static_cast<double>(interCount) / static_cast<double>(unionCount) : 0.0;
+    metrics.dice = (predCount + refCount > 0)
+                       ? (2.0 * static_cast<double>(interCount)) / static_cast<double>(predCount + refCount)
+                       : 0.0;
+    metrics.precision = (predCount > 0) ? static_cast<double>(interCount) / static_cast<double>(predCount) : 0.0;
+    metrics.recall = (refCount > 0) ? static_cast<double>(interCount) / static_cast<double>(refCount) : 0.0;
+
+    return metrics;
 }
 
 cv::Mat ImageProcessor::createContourOverlay(const cv::Mat& backgroundBgr, const cv::Mat& binaryMask,

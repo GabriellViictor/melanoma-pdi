@@ -98,6 +98,11 @@ bool runPipelineAlgorithmTest() {
     // para validar que o alinhamento do centroide mantem a assimetria de uma elipse simetrica proxima de zero
     cv::Mat testImg(224, 224, CV_8UC3, cv::Scalar(180, 200, 230));
     cv::ellipse(testImg, cv::Point(95, 105), cv::Size(42, 28), 25.0, 0, 360, cv::Scalar(55, 70, 110), -1);
+
+    // Mascara de referencia (ground-truth sintetico exato da elipse)
+    cv::Mat groundTruthMask = cv::Mat::zeros(224, 224, CV_8UC1);
+    cv::ellipse(groundTruthMask, cv::Point(95, 105), cv::Size(42, 28), 25.0, 0, 360, cv::Scalar(255), -1);
+
     // Linha escura simulando pelo fino sobreposto
     cv::line(testImg, cv::Point(35, 55), cv::Point(175, 155), cv::Scalar(15, 15, 15), 2);
 
@@ -111,6 +116,21 @@ bool runPipelineAlgorithmTest() {
 
     if (result.artifacts.hairMask.empty() || cv::countNonZero(result.artifacts.hairMask) == 0) {
         std::cerr << "[FAIL] Deteccao de pelos multi-angular nao identificou a linha desenhada.\n";
+        return false;
+    }
+
+    // Avaliacao quantitativa da qualidade de segmentacao (IoU / Jaccard e Dice)
+    // Valida diretamente o metodo compareMasks em mascaras controladas e no pipeline
+    const auto selfMetrics = melanoma::core::ImageProcessor::compareMasks(groundTruthMask, groundTruthMask);
+    if (std::abs(selfMetrics.iou - 1.0) > 1e-6 || std::abs(selfMetrics.dice - 1.0) > 1e-6) {
+        std::cerr << "[FAIL] compareMasks falhou na comparacao de identidade.\n";
+        return false;
+    }
+
+    const auto segMetrics = melanoma::core::ImageProcessor::compareMasks(result.artifacts.finalMask, groundTruthMask);
+    if (segMetrics.iou <= 0.40 || segMetrics.dice <= 0.55) {
+        std::cerr << "[FAIL] Metricas de sobreposicao abaixo do esperado: IoU=" << segMetrics.iou
+                  << ", Dice=" << segMetrics.dice << "\n";
         return false;
     }
 
@@ -143,7 +163,8 @@ bool runPipelineAlgorithmTest() {
     }
 
     std::cout << "       [OK] Deteccao de pelos multi-angular identificou pixels de pelo.\n"
-              << "       [OK] Segmentacao isolou a lesao central.\n"
+              << "       [OK] Segmentacao isolou a lesao central (IoU=" << segMetrics.iou
+              << ", Dice=" << segMetrics.dice << ").\n"
               << "       [OK] Area=" << result.features.area << " px, Perimetro="
               << result.features.perimeter << " px, Compacidade=" << result.features.compactness << "\n"
               << "       [OK] Assimetria Biaxial=" << result.features.asymmetryIndex

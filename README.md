@@ -38,10 +38,10 @@ Desenvolver um pipeline de Processamento Digital de Imagens (PDI) utilizando a l
 
 A solução computacional implementada no módulo `melanoma::core::ImageProcessor` executa um pipeline completo dividido em cinco etapas sequenciais:
 
-1. **Detecção e Remoção Morfológica de Pelos (`removeHairs`):**
-   * Conversão para escala de cinza e aplicação da transformada morfológica **Black-Hat Multi-Angular** (elementos estruturantes lineares de $17\text{ px}$ em $0^\circ, 45^\circ, 90^\circ, 135^\circ$, metodologia *DullRazor* de Lee et al.) para evidenciar estruturas capilares finas sem capturar o núcleo escuro da lesão;
-   * Binarização da resposta direcional máxima (limiar $12.0$) seguida de dilatação elíptica leve ($3 \times 3$);
-   * Reconstrução dérmica por meio do algoritmo de **Inpainting de Telea** (`cv::INPAINT_TELEA`, raio $3$) e suavização com **Filtro Bilateral** (`cv::bilateralFilter`) preservador de bordas. Pode ser desativada via `--no-inpaint` / `--no-bilateral` para experimentos comparativos.
+1. **Detecção e Remoção Morfológica de Pelos (`detectHairs` & `removeHairs`):**
+   * Conversão para escala de cinza e aplicação da metodologia **DullRazor em dois estágios com proteção de núcleo**: extração de vales estreitos via **Black-Hat elíptico ($7 \times 7$)** combinada a filtragem de colinearidade direcional em **$8$ orientações** (elementos estruturantes lineares de $9\text{ px}$), preservando integralmente o interior escuro de lesões pequenas enquanto destaca fibras capilares;
+   * Filtragem topológica de componentes conexos (`cv::connectedComponentsWithStats`) sem preenchimento de laços fechados e dilatação elíptica suave ($3 \times 3$);
+   * Reconstrução dérmica por meio do algoritmo de **Inpainting de Telea** (`cv::INPAINT_TELEA`, raio $3$), mantendo a imagem restaurada $100\%$ nítida fora da máscara de pelos, e suavização com **Filtro Bilateral** (`cv::bilateralFilter`) aplicada ao ramo de preparação do canal de segmentação. Pode ser desativada via `--no-inpaint` / `--no-bilateral` para experimentos comparativos.
 
 2. **Supressão de Vinhetamento, Correção de Iluminação e Preparação de Canal (`createFieldOfViewMask` & `prepareSegmentationChannel`):**
    * Detecção automática da máscara de Campo de Visão (*Field of View* — FoV) para isolar a abertura central do dermatoscópio e rejeitar cantos brancos/pretos de vinheta e marcações periféricas;
@@ -79,7 +79,8 @@ A solução computacional implementada no módulo `melanoma::core::ImageProcesso
 
 ## Estágio Atual do Projeto
 * **Etapa M1 (Concluída):** Definição do problema, escopo, estudo de viabilidade, [proposta detalhada](./docs/PROPOSTA.md), scripts de automação do dataset e estrutura base de leitura e validação com CMake/CTest.
-* **Etapa M2 (Atual):** Implementação completa do pipeline de PDI em C++/OpenCV (`ImageProcessor`), interface de linha de comando (CLI) flexível para execução em imagem única, diretórios ou lotes do dataset, geração automática de $6$ artefatos visuais intermediários por imagem, exportação de métricas em CSV e testes unitários sintéticos do pipeline.
+* **Etapa M2 (Concluída):** Implementação completa das Etapas 1 a 4 do pipeline de PDI em C++/OpenCV (`ImageProcessor`), interface de linha de comando (CLI) flexível para execução em imagem única, diretórios ou lotes do dataset, geração automática de $6$ artefatos visuais intermediários por imagem, exportação de $33$ colunas de métricas ABCD em CSV, métricas quantitativas de sobreposição (`IoU`/`Dice`), experimentos controlados e [relatório técnico M2](./docs/relatorio_m2.md).
+* **Etapa M3 (Planejada):** Extração de atributos ABCD em lote sobre as $13.879$ imagens, implementação do escore clínico TDS e treinamento/avaliação do classificador supervisionado (`cv::ml::SVM` / `cv::ml::RTrees`) com foco em alta sensibilidade diagnóstica.
 
 ---
 
@@ -95,6 +96,8 @@ melanoma-pdi/
 │   └── download_dataset.ps1    # Script Windows (PowerShell) para download e extração do dataset
 ├── docs/
 │   ├── PROPOSTA.md             # Documento formal e detalhado da proposta M1
+│   ├── revisao_m1_plano_m2.md  # Rastreabilidade do feedback M1, protocolo experimental e plano M2
+│   ├── relatorio_m2.md         # Relatório técnico parcial M2 (métodos, experimentos, tabelas e plano M3)
 │   ├── 6068.jpg                # Imagem dermatoscópica de demonstração (Benign)
 │   └── 7280.jpg                # Imagem dermatoscópica de demonstração (Malignant)
 ├── images/
@@ -229,7 +232,9 @@ O executável de testes (`test_dataset_io`) valida três frentes:
 ---
 
 ## Documentação Adicional
-* [PROPOSTA.md](./docs/PROPOSTA.md)
+* [PROPOSTA.md](./docs/PROPOSTA.md) — Proposta original e fundamentação do projeto (Etapa M1)
+* [revisao_m1_plano_m2.md](./docs/revisao_m1_plano_m2.md) — Resposta ponto a ponto ao feedback da M1 e protocolo experimental da M2
+* [relatorio_m2.md](./docs/relatorio_m2.md) — Relatório técnico completo da Etapa M2 (fundamentação matemática, experimentos controlados, métricas IoU/Dice, análise de falhas e plano M3)
 
 ---
 

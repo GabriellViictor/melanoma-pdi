@@ -129,6 +129,15 @@ struct PipelineResult {
     std::string errorMessage;
 };
 
+struct SegmentationComparisonMetrics {
+    double iou = 0.0;                   // Intersection over Union (Jaccard) em [0, 1]
+    double dice = 0.0;                  // Coeficiente de Sorensen-Dice em [0, 1]
+    double precision = 0.0;             // Precisão de pixels em [0, 1]
+    double recall = 0.0;                // Sensibilidade (Recall) de pixels em [0, 1]
+    int intersectionPixels = 0;
+    int unionPixels = 0;
+};
+
 class ImageProcessor {
 public:
     static constexpr int kExpectedWidth = 224;
@@ -158,6 +167,7 @@ public:
     // 3. Extração de características e descritores ABCD (Forma, Assimetria, Borda, Cor e Diâmetro)
     static MorphologicalFeatures extractFeatures(const cv::Mat& binaryMask);
     static ColorFeatures extractColorFeatures(const cv::Mat& bgrImage, const cv::Mat& binaryMask);
+    static SegmentationComparisonMetrics compareMasks(const cv::Mat& predictedMask, const cv::Mat& referenceMask);
     static cv::Mat createContourOverlay(const cv::Mat& backgroundBgr, const cv::Mat& binaryMask,
                                         const cv::Scalar& contourColor = cv::Scalar(0, 255, 0),
                                         int thickness = 2);

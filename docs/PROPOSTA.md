@@ -206,7 +206,7 @@ O escopo do projeto foi delimitado de forma modular para permitir avanços progr
 * **Etapa M3 (Marco Final):** Implementação do extrator de características ABCD, geração dos vetores numéricos, treinamento do classificador em C++ (`cv::ml::SVM`) e apuração das métricas de desempenho (Sensibilidade, Especificidade e Acurácia).
 
 ## Código e resultados preliminares
-Até o presente momento não foi realizado nenhum desenvolvimento de código nem obtido nenhum tipo de resultado preliminar. Estas atividades e artefatos estão previstos para produção nas próximas fases.
+Na Etapa M1 foi estruturado o planejamento conceitual e a inspeção do dataset. Na **Etapa M2**, o pipeline de aquisição, remoção morfológica de pelos (*DullRazor* em dois estágios + Inpainting de Telea), supressão de vinhetamento, segmentação comparativa (Otsu no canal CIE $L^*a^*b^*$ vs. GrabCut) e extração completa dos descritores ABCD foi integralmente implementado em C++/OpenCV (`src/core/ImageProcessor.cpp`), com experimentos e resultados documentados em [`docs/relatorio_m2.md`](./relatorio_m2.md).
 
 
 ## Referências
