@@ -26,3 +26,7 @@ desktop.ini
 # Logs e Temporários
 *.log
 *.tmp
+
+# Memória Local de IA (NUNCA comitar ou enviar para o repositório)
+AI_MEMORY.MD
+AI_MEMORY.md
