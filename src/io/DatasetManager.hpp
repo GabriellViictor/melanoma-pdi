@@ -70,6 +70,11 @@ public:
     static constexpr std::size_t kExpectedTestMalignant = 1000;
     static constexpr std::size_t kExpectedTotal = 13879;
 
+    static std::filesystem::path resolveDatasetRoot(
+        const std::filesystem::path& requestedPath,
+        const std::filesystem::path& executablePath = {}
+    );
+
     static DatasetReport inspectDataset(const std::filesystem::path& datasetRoot);
 
     static std::vector<ImageEntry> listImages(
