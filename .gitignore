@@ -1,8 +1,14 @@
 # Build e Compilação
+/build/
 build/
+build-*/
 cmake-build-*/
+/out/
 out/
+/bin/
 bin/
+lib/
+*.a
 *.exe
 *.o
 *.obj
@@ -26,6 +32,17 @@ desktop.ini
 # Logs e Temporários
 *.log
 *.tmp
+
+# Dataset e Arquivos Compactados (gerados pelos scripts - NUNCA comitar)
+*.zip
+images/input/dataset/
+images/input/train/
+images/input/test/
+images/input/**/*.jpg
+images/input/**/*.jpeg
+images/input/**/*.png
+!images/input/.gitkeep
+!images/results/.gitkeep
 
 # Memória Local de IA (NUNCA comitar ou enviar para o repositório)
 AI_MEMORY.MD

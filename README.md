@@ -61,11 +61,18 @@ melanoma-pdi/
 ├── CMakeLists.txt              # Configuração do CMake para compilação C++ e OpenCV
 ├── README.md                   # Síntese navegável e porta de entrada do projeto
 ├── .gitignore                  # Arquivos e pastas ignoradas pelo controle de versão
+├── scripts/
+│   ├── download_dataset.sh     # Script Linux/macOS para download e extração do dataset Kaggle
+│   └── download_dataset.ps1    # Script Windows (PowerShell) para download e extração do dataset
 ├── docs/
-│   └── proposta.md             # Documento formal e detalhado da proposta M1
+│   └── PROPOSTA.md             # Documento formal e detalhado da proposta M1
 ├── images/
-   ├── input/                  # Amostras de imagens dermatoscópicas para testes
-   └── results/                # Resultados visuais dos processamentos preliminares
+│   ├── input/                  # Diretório de entrada (dataset extraído em images/input/train e images/input/test)
+│   └── results/                # Resultados visuais e artefatos dos processamentos
+└── src/
+    ├── main.cpp                # Ponto de entrada CLI da aplicação
+    ├── io/                     # Módulo de leitura e validação do dataset
+    └── core/                   # Módulo de processamento de imagens (OpenCV)
 ```
 
 ---
@@ -78,24 +85,31 @@ melanoma-pdi/
 
 ---
 
-## Instruções de Compilação e Execução
-Quando houver software, utilizaremos os comandos abaixo para compilar:
+## Instruções de Obtenção dos Dados, Compilação e Execução
+
+### 1. Download do Dataset (Kaggle)
+O conjunto de dados ([Melanoma Cancer Dataset](https://www.kaggle.com/datasets/bhaveshmittal/melanoma-cancer-dataset/data)) não é versionado no repositório. Utilize os scripts na pasta `scripts/` para baixar e extrair automaticamente as imagens em `images/input/`:
+
+**Linux / macOS:**
+```bash
+./scripts/download_dataset.sh
+```
+
+**Windows (PowerShell):**
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\download_dataset.ps1
+```
+
+### 2. Compilação
 ```bash
 cmake -S . -B build/unix-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug
 cmake --build build/unix-debug
 ```
 
-Pretendemos que o software seja executado para treinamento com:
+### 3. Execução
+Para verificar o dataset e executar o processamento inicial sobre amostras:
 ```bash
-./pdi_lab_train \
-  --benign-input <diretorio de treino benigno>
-  --malign-input <diretorio de treino maligno>
-```
-
-e para validação
-```bash
-./pdi_lab \
-  --input <imagem de validacap>
+./build/unix-debug/melanoma_pdi --dataset images/input --samples 2
 ```
 
 ---

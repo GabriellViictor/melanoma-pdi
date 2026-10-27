@@ -27,19 +27,25 @@ find_package(OpenCV REQUIRED)
 message(STATUS "OpenCV encontrada: versao ${OpenCV_VERSION}")
 message(STATUS "OpenCV config: ${OpenCV_DIR}")
 
-# Diretórios de inclusão
-include_directories(
+# Biblioteca base compartilhada entre o CLI e os testes
+add_library(melanoma_core STATIC
+    src/io/DatasetManager.cpp
+    src/core/ImageProcessor.cpp
+)
+
+target_include_directories(melanoma_core PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${OpenCV_INCLUDE_DIRS}
 )
 
-# Alvo principal
+target_link_libraries(melanoma_core PUBLIC ${OpenCV_LIBS})
+
+# Alvo principal CLI
 add_executable(melanoma_pdi
     src/main.cpp
 )
 
-# Vincula as bibliotecas do OpenCV ao executável
-target_link_libraries(melanoma_pdi PRIVATE ${OpenCV_LIBS})
+target_link_libraries(melanoma_pdi PRIVATE melanoma_core)
 
 # No Windows, copia as DLLs do OpenCV para a pasta do executavel apos a compilacao
 if(WIN32 AND EXISTS "${OpenCV_DIR}/x64/mingw/bin")
