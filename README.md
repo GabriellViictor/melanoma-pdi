@@ -39,33 +39,29 @@ Desenvolver um pipeline de Processamento Digital de Imagens (PDI) utilizando a l
 A solução computacional implementada no módulo `melanoma::core::ImageProcessor` executa um pipeline completo dividido em cinco etapas sequenciais:
 
 1. **Detecção e Remoção Morfológica de Pelos (`removeHairs`):**
-   * Conversão para escala de cinza e aplicação da transformada morfológica **Black-Hat** (elemento estruturante retangular $17 \times 17$) para evidenciar estruturas escuras finas e alongadas sobrepostas à pele e à lesão;
-   * Binarização da resposta (limiar $12.0$) seguida de dilatação leve ($3 \times 3$) para englobar as bordas dos fios;
-   * Reconstrução das regiões ocluídas por meio do algoritmo de **Inpainting de Telea** (`cv::INPAINT_TELEA`, raio de vizinhança $3$). Pode ser desativada via flag `--no-inpaint` para experimentos comparativos.
+   * Conversão para escala de cinza e aplicação da transformada morfológica **Black-Hat Multi-Angular** (elementos estruturantes lineares de $17\text{ px}$ em $0^\circ, 45^\circ, 90^\circ, 135^\circ$, metodologia *DullRazor* de Lee et al.) para evidenciar estruturas capilares finas sem capturar o núcleo escuro da lesão;
+   * Binarização da resposta direcional máxima (limiar $12.0$) seguida de dilatação elíptica leve ($3 \times 3$);
+   * Reconstrução dérmica por meio do algoritmo de **Inpainting de Telea** (`cv::INPAINT_TELEA`, raio $3$) e suavização com **Filtro Bilateral** (`cv::bilateralFilter`) preservador de bordas. Pode ser desativada via `--no-inpaint` / `--no-bilateral` para experimentos comparativos.
 
-2. **Preparação de Canal e Espaço de Cores (`prepareSegmentationChannel`):**
-   * Suporte configurável (`--channel <lab|gray>`) para conversão ao espaço de cores **CIE $L^*a^*b^*$** (extraindo o canal de luminância $L^*$) ou **Escala de Cinza**;
-   * Inversão matemática da intensidade ($255 - I$) para que a lesão pigmentada (mais escura que a pele sadia) assuma valores altos de primeiro plano.
+2. **Supressão de Vinhetamento, Correção de Iluminação e Preparação de Canal (`createFieldOfViewMask` & `prepareSegmentationChannel`):**
+   * Detecção automática da máscara de Campo de Visão (*Field of View* — FoV) para isolar a abertura central do dermatoscópio e rejeitar cantos brancos/pretos de vinheta e marcações periféricas;
+   * Correção de iluminação (*flat-field*) para remover gradientes lentos de sombra nas bordas da imagem;
+   * Suporte configurável (`--channel <lab|gray>`) para espaço **CIE $L^*a^*b^*$** (combinando luminância invertida $255 - L^*$ com cromaticidade melanocítica $a^*, b^*$) ou **Escala de Cinza invertida**.
 
-3. **Segmentação Automática (`segmentOtsu`):**
-   * Atenuação de ruídos de alta frequência com filtro **Gaussiano** ($5 \times 5$);
-   * Binarização automática global pelo método de **Limiarização de Otsu** (`cv::THRESH_BINARY | cv::THRESH_OTSU`).
+3. **Segmentação Automática (`segmentOtsu` & `segmentGrabCut`):**
+   * Suavização gaussiana ($5 \times 5$) e binarização automática pelo método de **Otsu** restrito aos pixels válidos do FoV (`--seg-method otsu`) ou refinamento iterativo por cortes em grafos via **GrabCut** (`--seg-method grabcut`).
 
-4. **Pós-processamento Morfológico e Filtragem Topológica (`applyMorphologyAndFilter`):**
-   * **Fechamento Morfológico** (elemento elíptico $9 \times 9$) para conectar descontinuidades internas ou falhas causadas por variações de pigmentação;
-   * **Abertura Morfológica** (elemento elíptico $5 \times 5$) para eliminar espículas periféricas e pequenas ilhas de falso positivo;
-   * **Filtro de Maior Componente Conexo** (`cv::connectedComponentsWithStats`) para isolar a lesão principal e descartar artefatos de vinheta nos cantos da imagem;
+4. **Pós-processamento Morfológico e Filtragem Topológica Central (`applyMorphologyAndFilter`):**
+   * **Abertura Morfológica** (elemento elíptico $5 \times 5$) para quebrar pontes finas com ruídos periféricos;
+   * **Fechamento Morfológico** (elemento elíptico $9 \times 9$) para conectar descontinuidades internas;
+   * **Seleção Ponderada de Componente Conexo Central** (`keepLargestConnectedComponent`) ponderando a área pela distância gaussiana ao centro da imagem;
    * **Preenchimento de Orifícios (`fillMaskHoles`)** via reconstrução do contorno externo principal.
 
-5. **Extração de Características e Descritores (`extractFeatures` & `processBasic`):**
-   * **Área ($A$) e Perímetro ($P$):** Contagem de pixels da região conexa e comprimento de arco do contorno principal;
-   * **Compacidade (Polsby-Popper):** Medida de irregularidade de borda dada por $\text{Compacidade} = \frac{P^2}{4\pi A}$ (círculo perfeito $= 1.0$, bordas recortadas $> 1.0$);
-   * **Circularidade:** Dada por $\text{Circularidade} = \frac{4\pi A}{P^2} \le 1.0$;
-   * **Solidez:** Razão entre a área da lesão e a área do seu fecho convexo ($\text{Solidez} = \frac{A}{A_{\text{hull}}}$);
-   * **Diâmetro Equivalente:** $\text{Diâmetro} = \sqrt{\frac{4A}{\pi}}$;
-   * **Razão de Aspecto e Bounding Box:** Relação $\frac{\text{Largura}}{\text{Altura}}$ do retângulo delimitador mínimo;
-   * **Índice de Assimetria:** Alinhamento da máscara pelo eixo principal de inércia obtido via momentos centrais ($\theta = \frac{1}{2}\operatorname{atan2}(2\mu_{11}, \mu_{20} - \mu_{02})$), espelhamento horizontal e cálculo da taxa de não-sobreposição via operação lógica $\text{XOR}$;
-   * **Estatísticas Cromáticas e de Luminância:** Médias dos canais $B$, $G$, $R$, média de luminância e desvio-padrão de luminância.
+5. **Extração de Características e Descritores ABCD (`extractFeatures` & `extractColorFeatures`):**
+   * **A — Assimetria:** Translação do centroide para o centro do canvas e alinhamento pelos eixos principais de inércia ($\theta = \frac{1}{2}\operatorname{atan2}(2\mu_{11}, \mu_{20} - \mu_{02})$), reflexão biaxial (eixos maior e menor) via $\text{XOR}$ normalizado em $[0, 1]$, e cálculo dos **7 Momentos Invariantes de Hu** (`cv::HuMoments`);
+   * **B — Irregularidade de Borda:** Compacidade de Polsby-Popper ($\frac{P^2}{4\pi A} \ge 1.0$), Circularidade ($\frac{4\pi A}{P^2} \le 1.0$), Solidez ($\frac{A}{A_{\text{hull}}}$) e **Variância Radial Normalizada** das distâncias do centroide ao contorno;
+   * **C — Variação Cromática (restrita à máscara da lesão):** Média e desvio-padrão estritamente dentro da ROI segmentada nos espaços $BGR$, $L^*a^*b^*$ e $HSV$, além da contagem de **Clusters Cromáticos ABCD** (branco, vermelho, castanho-claro, castanho-escuro, azul-acinzentado e preto);
+   * **D — Dimensões e Diâmetro:** Área ($A$), Perímetro ($P$), Diâmetro Equivalente ($\sqrt{4A/\pi}$), Razão de Aspecto e comprimentos dos **Eixos Maior e Menor** da elipse ajustada via `cv::fitEllipse`.
 
 ---
 
@@ -154,15 +150,18 @@ O executável `melanoma_pdi` oferece suporte a diferentes modos de operação e 
 Uso: ./build/unix-debug/melanoma_pdi [opcoes]
 
 Opcoes disponiveis:
-  --image <path>       Processa uma unica imagem especifica
-  --input-dir <path>   Processa todas as imagens encontradas no diretorio informado
-  --dataset <path>     Caminho para a raiz do dataset (padrao: images/input)
-  --samples <n>        Numero de amostras por classe ao ler o dataset (padrao: 2)
-  --output-dir <path>  Diretorio para salvar saidas e artefatos (padrao: images/results)
-  --channel <lab|gray> Canal para segmentacao por Otsu (padrao: lab)
-  --no-inpaint         Desativa a remocao de pelos (util para experimentos comparativos)
-  --csv <path>         Caminho do arquivo CSV de metricas (padrao: <output-dir>/metrics.csv)
-  -h, --help           Exibe a mensagem de ajuda
+  --image <path>             Processa uma unica imagem especifica
+  --input-dir <path>         Processa todas as imagens encontradas no diretorio informado
+  --dataset <path>           Caminho para a raiz do dataset (padrao: images/input)
+  --samples <n>              Numero de amostras por classe ao ler o dataset (padrao: 2)
+  --output-dir <path>        Diretorio para salvar saidas e artefatos (padrao: images/results)
+  --channel <lab|gray>       Canal para segmentacao (padrao: lab)
+  --seg-method <otsu|grabcut> Metodo de segmentacao da lesao (padrao: otsu)
+  --no-inpaint               Desativa a remocao de pelos (util para experimentos comparativos)
+  --no-bilateral             Desativa o filtro bilateral pos-inpainting
+  --no-vignette-filter       Desativa a supressao de vinhetamento e correcao de iluminacao
+  --csv <path>               Caminho do arquivo CSV de metricas (padrao: <output-dir>/metrics.csv)
+  -h, --help                 Exibe a mensagem de ajuda
 ~~~
 
 #### Exemplos Práticos de Uso:
@@ -205,8 +204,8 @@ Para cada imagem processada (ex.: `7280.jpg`), o sistema salva automaticamente *
 5. `<id>_5_final_mask.png` — Máscara final refinada após fechamento, abertura, filtragem de maior componente conexo e preenchimento de buracos;
 6. `<id>_6_contour_overlay.png` — Imagem após inpainting com o contorno final da lesão demarcado em verde.
 
-Além das imagens, todas as métricas extraídas são consolidadas e anexadas ao arquivo **`metrics.csv`** contendo as colunas:
-`image_id, split, label, area_px, perimeter_px, compactness, circularity, solidity, equiv_diameter_px, aspect_ratio, asymmetry_index, mean_luminance, std_luminance, mean_b, mean_g, mean_r, bbox_x, bbox_y, bbox_w, bbox_h, success`.
+Além das imagens, todas as métricas ABCD extraídas são consolidadas no arquivo **`metrics.csv`** contendo as colunas:
+`image_id, split, label, area_px, perimeter_px, compactness, circularity, solidity, border_radial_var, equiv_diameter_px, major_axis_px, minor_axis_px, aspect_ratio, asymmetry_major, asymmetry_minor, asymmetry_index, hu1, hu2, color_clusters, lesion_mean_l, lesion_std_l, lesion_mean_a, lesion_std_a, lesion_mean_bstar, lesion_std_bstar, lesion_mean_b, lesion_mean_g, lesion_mean_r, bbox_x, bbox_y, bbox_w, bbox_h, success`.
 
 ---
 

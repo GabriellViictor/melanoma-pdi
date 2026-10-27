@@ -17,7 +17,7 @@ bool runDatasetIntegrityTest(const std::filesystem::path& datasetRoot) {
 
     if (! report.hasAllDirectories()) {
         std::cout << "[INFO] Diretorios do dataset ainda nao baixados localmente (use scripts/download_dataset).\n";
-        return true; // Nao falha o build quando os dados pesados nao estao versionados no git
+        return true;
     }
 
     std::cout << "       train/Benign    : " << report.trainBenignCount
@@ -92,14 +92,14 @@ bool runProcessingSmokeTest(const std::filesystem::path& datasetRoot) {
 }
 
 bool runPipelineAlgorithmTest() {
-    std::cout << "[TEST] Verificando algoritmos do Pipeline M2 (Pelos, Otsu, Morfologia e Metricas)...\n";
+    std::cout << "[TEST] Verificando algoritmos do Pipeline (Pelos, Segmentacao, Morfologia e Descritores ABCD)...\n";
 
-    // Cria imagem sintetica de teste: fundo claro de pele (BGR ~ 180, 200, 230),
-    // lesao eliptica central escura (BGR ~ 60, 70, 90) e linha preta simulando pelo
+    // Cria imagem sintetica de teste com lesao eliptica ligeiramente deslocada do centro (95, 105)
+    // para validar que o alinhamento do centroide mantem a assimetria de uma elipse simetrica proxima de zero
     cv::Mat testImg(224, 224, CV_8UC3, cv::Scalar(180, 200, 230));
-    cv::ellipse(testImg, cv::Point(112, 112), cv::Size(45, 30), 20.0, 0, 360, cv::Scalar(60, 70, 90), -1);
-    // Linha escura simulando pelo fino
-    cv::line(testImg, cv::Point(40, 60), cv::Point(180, 160), cv::Scalar(20, 20, 20), 2);
+    cv::ellipse(testImg, cv::Point(95, 105), cv::Size(42, 28), 25.0, 0, 360, cv::Scalar(55, 70, 110), -1);
+    // Linha escura simulando pelo fino sobreposto
+    cv::line(testImg, cv::Point(35, 55), cv::Point(175, 155), cv::Scalar(15, 15, 15), 2);
 
     const auto result = melanoma::core::ImageProcessor::processPipeline(
         testImg, "synthetic_test", melanoma::io::DatasetSplit::Test, melanoma::io::LesionClass::Benign);
@@ -110,11 +110,11 @@ bool runPipelineAlgorithmTest() {
     }
 
     if (result.artifacts.hairMask.empty() || cv::countNonZero(result.artifacts.hairMask) == 0) {
-        std::cerr << "[FAIL] Deteccao de pelos nao identificou a linha desenhada.\n";
+        std::cerr << "[FAIL] Deteccao de pelos multi-angular nao identificou a linha desenhada.\n";
         return false;
     }
 
-    if (result.features.area <= 100.0) {
+    if (result.features.area <= 1000.0) {
         std::cerr << "[FAIL] Area segmentada muito baixa: " << result.features.area << "\n";
         return false;
     }
@@ -125,11 +125,31 @@ bool runPipelineAlgorithmTest() {
         return false;
     }
 
-    std::cout << "       [OK] Deteccao de pelos identificou pixels de pelo.\n"
+    if (result.features.asymmetryIndex < 0.0 || result.features.asymmetryIndex > 0.25) {
+        std::cerr << "[FAIL] Indice de assimetria incorreto para elipse simetrica deslocada: "
+                  << result.features.asymmetryIndex << "\n";
+        return false;
+    }
+
+    if (result.features.majorAxisPx < result.features.minorAxisPx || result.features.minorAxisPx <= 0.0) {
+        std::cerr << "[FAIL] Eixos da elipse invalidos: major=" << result.features.majorAxisPx
+                  << ", minor=" << result.features.minorAxisPx << "\n";
+        return false;
+    }
+
+    if (result.colorFeatures.colorClusters < 1) {
+        std::cerr << "[FAIL] Quantificacao de cores ABCD falhou.\n";
+        return false;
+    }
+
+    std::cout << "       [OK] Deteccao de pelos multi-angular identificou pixels de pelo.\n"
               << "       [OK] Segmentacao isolou a lesao central.\n"
               << "       [OK] Area=" << result.features.area << " px, Perimetro="
               << result.features.perimeter << " px, Compacidade=" << result.features.compactness << "\n"
-              << "[PASS] Algoritmos centrais de PDI verificados com sucesso!\n\n";
+              << "       [OK] Assimetria Biaxial=" << result.features.asymmetryIndex
+              << ", Eixos=" << result.features.majorAxisPx << "x" << result.features.minorAxisPx
+              << " px, Clusters de Cor=" << result.colorFeatures.colorClusters << "\n"
+              << "[PASS] Algoritmos centrais de PDI e descritores ABCD verificados com sucesso!\n\n";
 
     return true;
 }

@@ -15,18 +15,21 @@ namespace {
 void printHelp(const char* progName) {
     std::cout << "Uso: " << progName << " [opcoes]\n\n"
               << "Opcoes disponiveis:\n"
-              << "  --image <path>       Processa uma unica imagem especifica\n"
-              << "  --input-dir <path>   Processa todas as imagens encontradas no diretorio informado\n"
-              << "  --dataset <path>     Caminho para a raiz do dataset (padrao: images/input)\n"
-              << "  --samples <n>        Numero de amostras por classe ao ler o dataset (padrao: 2)\n"
-              << "  --output-dir <path>  Diretorio para salvar saidas e artefatos (padrao: images/results)\n"
-              << "  --channel <lab|gray> Canal para segmentacao por Otsu (padrao: lab)\n"
-              << "  --no-inpaint         Desativa a remocao de pelos (util para experimentos comparativos)\n"
-              << "  --csv <path>         Caminho do arquivo CSV de metricas (padrao: <output-dir>/metrics.csv)\n"
-              << "  -h, --help           Exibe esta mensagem de ajuda\n\n"
+              << "  --image <path>             Processa uma unica imagem especifica\n"
+              << "  --input-dir <path>         Processa todas as imagens encontradas no diretorio informado\n"
+              << "  --dataset <path>           Caminho para a raiz do dataset (padrao: images/input)\n"
+              << "  --samples <n>              Numero de amostras por classe ao ler o dataset (padrao: 2)\n"
+              << "  --output-dir <path>        Diretorio para salvar saidas e artefatos (padrao: images/results)\n"
+              << "  --channel <lab|gray>       Canal para segmentacao (padrao: lab)\n"
+              << "  --seg-method <otsu|grabcut> Metodo de segmentacao da lesao (padrao: otsu)\n"
+              << "  --no-inpaint               Desativa a remocao de pelos (util para experimentos comparativos)\n"
+              << "  --no-bilateral             Desativa o filtro bilateral pos-inpainting\n"
+              << "  --no-vignette-filter       Desativa a supressao de vinhetamento e correcao de iluminacao\n"
+              << "  --csv <path>               Caminho do arquivo CSV de metricas (padrao: <output-dir>/metrics.csv)\n"
+              << "  -h, --help                 Exibe esta mensagem de ajuda\n\n"
               << "Exemplos:\n"
               << "  " << progName << " --image docs/7280.jpg --output-dir images/results\n"
-              << "  " << progName << " --dataset images/input --samples 2 --channel lab\n"
+              << "  " << progName << " --dataset images/input --samples 2 --channel lab --seg-method otsu\n"
               << "  " << progName << " --image docs/7280.jpg --no-inpaint (para comparacao)\n";
 }
 
@@ -37,42 +40,62 @@ struct ImageItem {
     melanoma::io::LesionClass label = melanoma::io::LesionClass::Benign;
 };
 
-void appendMetricsToCsv(const std::filesystem::path& csvPath,
-                        const ImageItem& item,
-                        const melanoma::core::PipelineResult& result) {
-    const bool fileExists = std::filesystem::exists(csvPath);
-    std::ofstream out(csvPath, std::ios::app);
+void initCsvFile(const std::filesystem::path& csvPath) {
+    std::ofstream out(csvPath, std::ios::trunc);
     if (! out.is_open()) {
-        std::cerr << "[AVISO] Nao foi possivel abrir/criar CSV em " << csvPath.string() << "\n";
+        std::cerr << "[AVISO] Nao foi possivel inicializar CSV em " << csvPath.string() << "\n";
         return;
     }
 
-    if (! fileExists) {
-        out << "image_id,split,label,area_px,perimeter_px,compactness,circularity,solidity,"
-            << "equiv_diameter_px,aspect_ratio,asymmetry_index,mean_luminance,std_luminance,"
-            << "mean_b,mean_g,mean_r,bbox_x,bbox_y,bbox_w,bbox_h,success\n";
+    out << "image_id,split,label,area_px,perimeter_px,compactness,circularity,solidity,"
+        << "border_radial_var,equiv_diameter_px,major_axis_px,minor_axis_px,aspect_ratio,"
+        << "asymmetry_major,asymmetry_minor,asymmetry_index,hu1,hu2,"
+        << "color_clusters,lesion_mean_l,lesion_std_l,lesion_mean_a,lesion_std_a,"
+        << "lesion_mean_bstar,lesion_std_bstar,lesion_mean_b,lesion_mean_g,lesion_mean_r,"
+        << "bbox_x,bbox_y,bbox_w,bbox_h,success\n";
+}
+
+void appendMetricsToCsv(const std::filesystem::path& csvPath,
+                        const ImageItem& item,
+                        const melanoma::core::PipelineResult& result) {
+    std::ofstream out(csvPath, std::ios::app);
+    if (! out.is_open()) {
+        std::cerr << "[AVISO] Nao foi possivel gravar no CSV em " << csvPath.string() << "\n";
+        return;
     }
 
     const auto& f = result.features;
-    const auto& s = result.basicSummary;
+    const auto& c = result.colorFeatures;
 
     out << item.id << ","
         << melanoma::io::DatasetManager::toString(item.split) << ","
         << melanoma::io::DatasetManager::toString(item.label) << ","
-        << std::fixed << std::setprecision(2)
+        << std::fixed << std::setprecision(3)
         << f.area << ","
         << f.perimeter << ","
         << f.compactness << ","
         << f.circularity << ","
         << f.solidity << ","
+        << f.borderRadialVariance << ","
         << f.equivalentDiameter << ","
+        << f.majorAxisPx << ","
+        << f.minorAxisPx << ","
         << f.aspectRatio << ","
+        << f.asymmetryMajor << ","
+        << f.asymmetryMinor << ","
         << f.asymmetryIndex << ","
-        << s.meanLuminance << ","
-        << s.stdDevLuminance << ","
-        << s.meanB << ","
-        << s.meanG << ","
-        << s.meanR << ","
+        << f.huMoments[0] << ","
+        << f.huMoments[1] << ","
+        << c.colorClusters << ","
+        << c.lesionMeanL << ","
+        << c.lesionStdL << ","
+        << c.lesionMeanA << ","
+        << c.lesionStdA << ","
+        << c.lesionMeanBStar << ","
+        << c.lesionStdBStar << ","
+        << c.lesionMeanB << ","
+        << c.lesionMeanG << ","
+        << c.lesionMeanR << ","
         << f.boundingBox.x << ","
         << f.boundingBox.y << ","
         << f.boundingBox.width << ","
@@ -117,8 +140,19 @@ int main(int argc, char** argv) {
             } else {
                 segOptions.channel = melanoma::core::SegmentationChannel::LabL;
             }
+        } else if (arg == "--seg-method" && i + 1 < argc) {
+            std::string m = argv[++i];
+            if (m == "grabcut") {
+                segOptions.method = melanoma::core::SegmentationMethod::GrabCut;
+            } else {
+                segOptions.method = melanoma::core::SegmentationMethod::Otsu;
+            }
         } else if (arg == "--no-inpaint") {
             hairOptions.enabled = false;
+        } else if (arg == "--no-bilateral") {
+            hairOptions.applyBilateral = false;
+        } else if (arg == "--no-vignette-filter") {
+            segOptions.suppressVignette = false;
         }
     }
 
@@ -129,7 +163,9 @@ int main(int argc, char** argv) {
 
     std::filesystem::path projectRoot = std::filesystem::current_path();
     if (! std::filesystem::exists(projectRoot / "docs" / "7280.jpg")) {
-        if (! datasetPath.empty() && std::filesystem::exists(datasetPath.parent_path() / "docs" / "7280.jpg")) {
+        if (! datasetPath.empty() && std::filesystem::exists(datasetPath.parent_path().parent_path() / "docs" / "7280.jpg")) {
+            projectRoot = datasetPath.parent_path().parent_path();
+        } else if (! datasetPath.empty() && std::filesystem::exists(datasetPath.parent_path() / "docs" / "7280.jpg")) {
             projectRoot = datasetPath.parent_path();
         } else if (! execPath.empty() && std::filesystem::exists(execPath.parent_path().parent_path() / "docs" / "7280.jpg")) {
             projectRoot = execPath.parent_path().parent_path();
@@ -145,15 +181,19 @@ int main(int argc, char** argv) {
     }
 
     std::cout << "===============================================================================\n"
-              << " Melanoma PDI — Dermoscopic Analysis & Segmentation CLI (Etapa M2)\n"
+              << " Melanoma PDI — Dermoscopic Analysis & Segmentation CLI\n"
               << "===============================================================================\n"
               << "OpenCV Version    : " << CV_VERSION << "\n"
               << "Project Root      : " << projectRoot.string() << "\n"
               << "Output Directory  : " << outputDir.string() << "\n"
               << "Metrics CSV       : " << csvPath.string() << "\n"
               << "Segment Channel   : "
-              << (segOptions.channel == melanoma::core::SegmentationChannel::LabL ? "CIE L* (Inverted)" : "Grayscale (Inverted)") << "\n"
-              << "Hair Inpainting   : " << (hairOptions.enabled ? "Ativado (Black-Hat + Telea)" : "Desativado") << "\n"
+              << (segOptions.channel == melanoma::core::SegmentationChannel::LabL ? "CIE L*a*b* (Melanin Enhanced)" : "Grayscale (Inverted)") << "\n"
+              << "Segment Method    : "
+              << (segOptions.method == melanoma::core::SegmentationMethod::GrabCut ? "Otsu + GrabCut" : "Otsu") << "\n"
+              << "Hair Inpainting   : " << (hairOptions.enabled ? "Ativado (Multi-Angle Black-Hat + Telea)" : "Desativado") << "\n"
+              << "Bilateral Filter  : " << (hairOptions.applyBilateral ? "Ativado" : "Desativado") << "\n"
+              << "Vignette Filter   : " << (segOptions.suppressVignette ? "Ativado (FoV + Flat-Field)" : "Desativado") << "\n"
               << "-------------------------------------------------------------------------------\n";
 
     std::vector<ImageItem> imagesToProcess;
@@ -192,7 +232,8 @@ int main(int argc, char** argv) {
                     item.path = entry.path();
                     item.id = entry.path().stem().string();
                     item.split = melanoma::io::DatasetSplit::Test;
-                    item.label = melanoma::io::LesionClass::Benign;
+                    item.label = (item.id == "7280") ? melanoma::io::LesionClass::Malignant
+                                                     : melanoma::io::LesionClass::Benign;
                     imagesToProcess.push_back(item);
                 }
             }
@@ -248,19 +289,23 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    initCsvFile(csvPath);
+
     std::cout << "Processando " << imagesToProcess.size() << " imagens...\n";
-    std::cout << "---------------------------------------------------------------------------------------------------\n";
+    std::cout << "-------------------------------------------------------------------------------------------------------------\n";
     std::cout << std::left
               << std::setw(8)  << "ID"
-              << std::setw(12) << "Classe"
-              << std::setw(10) << "Area(px)"
-              << std::setw(11) << "Perim(px)"
-              << std::setw(10) << "Compac"
+              << std::setw(11) << "Classe"
+              << std::setw(9)  << "Area(px)"
+              << std::setw(10) << "Perim(px)"
+              << std::setw(8)  << "Compac"
               << std::setw(8)  << "Circ"
-              << std::setw(8)  << "Solid"
               << std::setw(8)  << "Asymm"
+              << std::setw(8)  << "RadVar"
+              << std::setw(8)  << "Colors"
+              << std::setw(14) << "Axes(Maj/Min)"
               << "Status\n";
-    std::cout << "---------------------------------------------------------------------------------------------------\n";
+    std::cout << "-------------------------------------------------------------------------------------------------------------\n";
 
     std::size_t successCount = 0;
 
@@ -291,19 +336,26 @@ int main(int argc, char** argv) {
         appendMetricsToCsv(csvPath, item, result);
 
         const auto& f = result.features;
+        const auto& c = result.colorFeatures;
+
+        std::ostringstream axesStr;
+        axesStr << std::fixed << std::setprecision(0) << f.majorAxisPx << "/" << f.minorAxisPx;
+
         std::cout << std::left << std::fixed
                   << std::setw(8)  << item.id
-                  << std::setw(12) << melanoma::io::DatasetManager::toString(item.label)
-                  << std::setw(10) << std::setprecision(0) << f.area
-                  << std::setw(11) << std::setprecision(1) << f.perimeter
-                  << std::setw(10) << std::setprecision(2) << f.compactness
+                  << std::setw(11) << melanoma::io::DatasetManager::toString(item.label)
+                  << std::setw(9)  << std::setprecision(0) << f.area
+                  << std::setw(10) << std::setprecision(1) << f.perimeter
+                  << std::setw(8)  << std::setprecision(2) << f.compactness
                   << std::setw(8)  << std::setprecision(2) << f.circularity
-                  << std::setw(8)  << std::setprecision(2) << f.solidity
                   << std::setw(8)  << std::setprecision(2) << f.asymmetryIndex
+                  << std::setw(8)  << std::setprecision(3) << f.borderRadialVariance
+                  << std::setw(8)  << c.colorClusters
+                  << std::setw(14) << axesStr.str()
                   << (result.success ? "[OK]" : "[AVISO: Sem Regiao]") << "\n";
     }
 
-    std::cout << "---------------------------------------------------------------------------------------------------\n";
+    std::cout << "-------------------------------------------------------------------------------------------------------------\n";
     std::cout << "Processamento concluido: " << successCount << "/" << imagesToProcess.size()
               << " imagens segmentadas com sucesso.\n";
     std::cout << "Artefatos visuais e metricas salvos em:\n"
