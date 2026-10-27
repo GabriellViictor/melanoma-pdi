@@ -47,6 +47,18 @@ add_executable(melanoma_pdi
 
 target_link_libraries(melanoma_pdi PRIVATE melanoma_core)
 
+# Testes automatizados (CTest)
+enable_testing()
+
+add_executable(melanoma_tests
+    tests/test_dataset_io.cpp
+)
+
+target_link_libraries(melanoma_tests PRIVATE melanoma_core)
+
+add_test(NAME dataset_integrity COMMAND melanoma_tests --test-dataset)
+add_test(NAME pipeline_smoke_test COMMAND melanoma_tests --test-processing)
+
 # No Windows, copia as DLLs do OpenCV para a pasta do executavel apos a compilacao
 if(WIN32 AND EXISTS "${OpenCV_DIR}/x64/mingw/bin")
     add_custom_command(TARGET melanoma_pdi POST_BUILD

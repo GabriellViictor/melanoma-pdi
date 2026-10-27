@@ -58,7 +58,7 @@ Definidos os integrantes do grupo de trabalho, [proposta detalhada em markdown](
 
 ```text
 melanoma-pdi/
-├── CMakeLists.txt              # Configuração do CMake para compilação C++ e OpenCV
+├── CMakeLists.txt              # Configuração do CMake para compilação C++, OpenCV e CTest
 ├── README.md                   # Síntese navegável e porta de entrada do projeto
 ├── .gitignore                  # Arquivos e pastas ignoradas pelo controle de versão
 ├── scripts/
@@ -69,10 +69,12 @@ melanoma-pdi/
 ├── images/
 │   ├── input/                  # Diretório de entrada (dataset extraído em images/input/train e images/input/test)
 │   └── results/                # Resultados visuais e artefatos dos processamentos
-└── src/
-    ├── main.cpp                # Ponto de entrada CLI da aplicação
-    ├── io/                     # Módulo de leitura e validação do dataset
-    └── core/                   # Módulo de processamento de imagens (OpenCV)
+├── src/
+│   ├── main.cpp                # Ponto de entrada CLI da aplicação
+│   ├── io/                     # Módulo de leitura e validação do dataset
+│   └── core/                   # Módulo de processamento de imagens (OpenCV)
+└── tests/
+    └── test_dataset_io.cpp     # Testes automatizados de integridade do dataset e leitura/processamento
 ```
 
 ---
@@ -106,10 +108,15 @@ cmake -S . -B build/unix-debug -G Ninja -DCMAKE_BUILD_TYPE=Debug
 cmake --build build/unix-debug
 ```
 
-### 3. Execução
+### 3. Execução e Testes
 Para verificar o dataset e executar o processamento inicial sobre amostras:
 ```bash
 ./build/unix-debug/melanoma_pdi --dataset images/input --samples 2
+```
+
+Para executar a suíte de testes automatizados (CTest):
+```bash
+ctest --test-dir build/unix-debug --output-on-failure -V
 ```
 
 ---
