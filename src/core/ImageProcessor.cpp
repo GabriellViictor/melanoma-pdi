@@ -4,6 +4,9 @@
 #include <cmath>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/photo.hpp>
+#if __has_include(<opencv2/geometry.hpp>)
+#include <opencv2/geometry.hpp>
+#endif
 
 namespace melanoma::core {
 

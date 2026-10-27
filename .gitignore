@@ -41,6 +41,7 @@ images/input/test/
 images/input/**/*.jpg
 images/input/**/*.jpeg
 images/input/**/*.png
+images/results/*
 !images/input/.gitkeep
 !images/results/.gitkeep
 
