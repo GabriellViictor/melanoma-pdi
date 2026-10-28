@@ -227,7 +227,7 @@ O executável de testes (`test_dataset_io`) valida três frentes:
 ---
 
 ## Vídeo de Apresentação da Etapa M1
-* [Assista no YouTube](https://youtu.be/oI2tWe0_nkA)
+* https://youtu.be/WFQrlgNkS1g
 
 ---
 
